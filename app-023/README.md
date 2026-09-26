@@ -41,8 +41,8 @@ cd app-023
 npm install
 npm run dev        # 开发服务器（默认 5173）
 npm run build      # tsc -b && vite build（含类型检查）
-npm test           # 单元测试（58 个用例）
-npm run e2e        # Playwright E2E（13 个用例，自动起 4174 preview）
+npm test           # 单元测试（88 个用例）
+npm run e2e        # Playwright E2E（16 个用例，自动起 4174 preview）
 ```
 
 首次跑 E2E 前需安装浏览器：`npx playwright install chromium`。
@@ -80,6 +80,7 @@ npm run e2e        # Playwright E2E（13 个用例，自动起 4174 preview）
 | [lib/audio.ts](src/lib/audio.ts) | 合成音（drum/metal/wood）、lookahead 调度器、事件展开 | `computeEvents` `computeLoopEvents` `scheduleEvents` `playRange` |
 | [lib/storage.ts](src/lib/storage.ts) | IndexedDB CRUD（scores/settings） | `listScores` `getScore` `saveScore` `deleteScore` |
 | [lib/factory.ts](src/lib/factory.ts) | JSON 默认数据 → 对象、曲牌 → Score 转换（跨小节自动切分补休止） | `scoreFromPattern` `newEmptyScore` `emptyBar` |
+| [lib/chant.ts](src/lib/chant.ts) | 口念字串 → 新谱解析（时值记号/齐奏括号/休止小节线、自动折行连打、三类错误定位） | `scoreFromChant` `ChantError` |
 | [hooks/useAudio.ts](src/hooks/useAudio.ts) | 播放状态集中管理：ctx/调度/循环/高亮/独奏静音 | `useAudio(score)` |
 | [components/ScoreGrid.tsx](src/components/ScoreGrid.tsx) | SVG 谱面：时间×乐器网格、时值线、tie 延伸、齐奏同列、选中光标、高亮列 | `<ScoreGrid>` |
 | [components/Transport.tsx](src/components/Transport.tsx) | 试听控制台：播放/BPM/循环/高亮开关 | `<Transport>` |
@@ -152,6 +153,19 @@ npm run e2e        # Playwright E2E（13 个用例，自动起 4174 preview）
 
 编辑器快捷键集中在 [Editor.tsx](src/pages/Editor.tsx) `onKey`：先 `if (target.tagName === 'INPUT'...)` 排除输入框，再按功能分支；修改谱面的操作必须走 `patch/editBar`（不可变更新 + 铺满校验）。
 
+### 5.6 调整口念字串语法
+
+解析逻辑全部在纯函数 [chant.ts](src/lib/chant.ts) `scoreFromChant(src, opts)`：
+
+```
+字 = 一拍(4格)   字_ = 半拍(2格)   字.. = 一拍半(6格)
+[字1字2] = 同时响（] 后可再跟 _ 或 ..）   0 = 休止   | = 小节线
+```
+
+- 不写小节线时按拍号自动折行，跨小节条目切成「前段 `tie:true` + 后段空步」，末尾不足补 `rest`——与曲牌载入（`scoreFromPattern`）是同一套规则。
+- 字序号从 1 数起、空白不计（括号/小节线占一个字位）；出错返回 `{ ok:false, error:{ kind, charIndex, barIndex, message } }`，三类 `kind`：`unknown-glyph` / `bar-mismatch` / `unmatched-bracket`，只返回第一个错误。
+- 解析只 `newId()` 生成新 Score，调用方（曲目列表页）保存成功后再跳转；任何错误路径都不写 IndexedDB，已有曲目不受影响。
+
 ## 6. 测试
 
 ### 6.1 布局
@@ -161,12 +175,13 @@ tests/grid.test.ts      26 用例：时值换算、切分偏移、拆格、宽�
 tests/glyphs.test.ts    18 用例：反查、技法区分、键位解析、防串乐器、冲突抛错
 tests/scheduler.test.ts  9 用例：漂移(<1e-9s)、齐奏同刻、循环相位、散板伸缩、lookahead 行为
 tests/storage.test.ts    5 用例：CRUD、排序、覆盖更新、设置往返（fake-indexeddb）
-e2e/app.spec.ts         13 用例：真实点击全链路（见 6.3）
+tests/chant.test.ts     30 用例：时值记号、齐奏括号、休止小节线、自动折行连打、三类报错定位
+e2e/app.spec.ts         16 用例：真实点击全链路（见 6.3）
 ```
 
 ### 6.2 约定
 
-- 改 `grid.ts` → 必跑 grid.test；改 `audio.ts` → 必跑 scheduler.test；改 `glyphs.ts` → 必跑 glyphs.test；改数据 JSON → 全量 `npm test`（曲牌结构有兜底断言）。
+- 改 `grid.ts` → 必跑 grid.test；改 `audio.ts` → 必跑 scheduler.test；改 `glyphs.ts` → 必跑 glyphs.test；改 `chant.ts` → 必跑 chant.test；改数据 JSON → 全量 `npm test`（曲牌结构有兜底断言）。
 - `computeEvents` 是纯函数（不碰 DOM/AudioContext），调度相关逻辑一律先写纯函数再接调度器，保证可测。
 
 ### 6.3 E2E

@@ -193,6 +193,63 @@ test.describe('打印', () => {
   });
 });
 
+test.describe('口念锣鼓经 → 新谱', () => {
+  test('念一段字串生成新谱并进编辑器（时值/齐奏/休止/折行）', async ({ page }) => {
+    await page.goto('#/');
+    await page.getByTestId('chant-input').fill('哐才七仓 | 咚_咚_ [哐才].. 0 0_ | 哐才七 仓哐');
+    await page.getByTestId('chant-title').fill('E2E 口念');
+    await page.getByTestId('btn-chant-generate').click();
+    await expect(page.getByTestId('editor-page')).toBeVisible();
+    await expect(page.getByTestId('score-title')).toHaveValue('E2E 口念');
+    // 第 1 小节：哐才七仓 各占一拍
+    await expect(page.getByTestId('grid-glyph-0-0-daluo')).toBeVisible(); // 哐
+    await expect(page.getByTestId('grid-glyph-0-4-xiaoluo')).toBeVisible(); // 才
+    // 第 2 小节：咚_咚_ 后半拍一个，[哐才] 齐奏同列（4 格处）
+    await expect(page.getByTestId('grid-glyph-1-0-gu')).toBeVisible(); // 咚
+    await expect(page.getByTestId('grid-glyph-1-2-gu')).toBeVisible(); // 咚
+    await expect(page.getByTestId('grid-glyph-1-4-daluo')).toBeVisible(); // [哐
+    await expect(page.getByTestId('grid-glyph-1-4-xiaoluo')).toBeVisible(); //  才]
+    // 第 3 小节 5 个字放不下，第 5 字「哐」自动折到第 4 小节
+    await expect(page.getByTestId('grid-glyph-3-0-daluo')).toBeVisible();
+  });
+
+  test('不认识的拟音字：指出第几个字、哪一小节，停在那一步且不生成新谱', async ({ page }) => {
+    await createEmptyScore(page, 'E2E 已有');
+    await page.goto('#/');
+    await expect(page.locator('tr', { hasText: 'E2E 已有' })).toBeVisible();
+    await page.getByTestId('chant-input').fill('哐才喵七');
+    await page.getByTestId('btn-chant-generate').click();
+    const err = page.getByTestId('chant-error');
+    await expect(err).toBeVisible();
+    await expect(err).toContainText('第3个字');
+    await expect(err).toContainText('「喵」');
+    await expect(err).toContainText('第1小节');
+    // 留在列表页，已有曲目原样、没有新增
+    await expect(page.getByTestId('score-list')).toBeVisible();
+    await expect(page.locator('tbody tr')).toHaveCount(1);
+    // 改对之后能正常生成
+    await page.getByTestId('chant-input').fill('哐才七仓');
+    await page.getByTestId('btn-chant-generate').click();
+    await expect(page.getByTestId('editor-page')).toBeVisible();
+    await page.goto('#/');
+    await expect(page.locator('tbody tr')).toHaveCount(2);
+    await expect(page.locator('tr', { hasText: 'E2E 已有' })).toBeVisible();
+  });
+
+  test('小节格数对不上与方括号没配对：各自报错并停住', async ({ page }) => {
+    await page.goto('#/');
+    await page.getByTestId('chant-input').fill('哐才七|哐');
+    await page.getByTestId('btn-chant-generate').click();
+    await expect(page.getByTestId('chant-error')).toContainText('格数对不上');
+    await expect(page.getByTestId('chant-error')).toContainText('第4个字');
+    await page.getByTestId('chant-input').fill('哐才 [七仓');
+    await page.getByTestId('btn-chant-generate').click();
+    await expect(page.getByTestId('chant-error')).toContainText('方括号没配对');
+    await expect(page.getByTestId('chant-error')).toContainText('第3个字');
+    await expect(page.getByTestId('score-list')).toBeVisible();
+  });
+});
+
 test.describe('设置', () => {
   test('改键位并持久化', async ({ page }) => {
     await page.goto('#/settings');

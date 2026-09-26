@@ -3,12 +3,25 @@ import { useEffect, useState } from 'react';
 import type { Score } from '../types';
 import { deleteScore, listScores, saveScore } from '../lib/storage';
 import { newEmptyScore, PATTERNS } from '../lib/factory';
+import { scoreFromChant, type ChantError } from '../lib/chant';
+
+const ERROR_KIND_LABEL: Record<ChantError['kind'], string> = {
+  'unknown-glyph': '不认识的拟音字',
+  'bar-mismatch': '小节格数对不上',
+  'unmatched-bracket': '方括号没配对',
+};
 
 export function ScoreList() {
   const [scores, setScores] = useState<Score[]>([]);
   const [title, setTitle] = useState('');
   const [bpb, setBpb] = useState(4);
   const [free, setFree] = useState(false);
+
+  // 口念锣鼓经 → 新谱（解析出错只提示，不动已有曲目）
+  const [chantText, setChantText] = useState('');
+  const [chantTitle, setChantTitle] = useState('');
+  const [chantBpb, setChantBpb] = useState(4);
+  const [chantErr, setChantErr] = useState<ChantError | null>(null);
 
   const refresh = () => listScores().then(setScores);
   useEffect(() => {
@@ -21,6 +34,18 @@ export function ScoreList() {
     await saveScore(s);
     setTitle('');
     window.location.hash = `#/score/${s.id}`;
+  };
+
+  const createFromChant = async () => {
+    const r = scoreFromChant(chantText, { title: chantTitle, beatsPerBar: chantBpb });
+    if (!r.ok) {
+      setChantErr(r.error);
+      return; // 停在出错那一步，不生成任何东西
+    }
+    await saveScore(r.score);
+    setChantErr(null);
+    setChantText('');
+    window.location.hash = `#/score/${r.score.id}`;
   };
 
   return (
@@ -47,6 +72,50 @@ export function ScoreList() {
         >
           从曲牌库创建
         </button>
+      </div>
+
+      <div className="chant-box" data-testid="chant-box">
+        <h2>口念锣鼓经 → 新谱</h2>
+        <p className="dim">
+          把师父口念的字串写进来：字 = 一拍，字_ = 半拍，字.. = 一拍半，[字1字2] = 同时响，0 = 休止，| = 小节线。
+          不写小节线会自动按拍号折行，跨小节的一下按连打处理，末尾不足补休止。
+        </p>
+        <textarea
+          data-testid="chant-input"
+          rows={3}
+          placeholder="例：哐才七仓 | 咚_咚_ [哐才].. 0 0_ | 哐才七 仓"
+          value={chantText}
+          onChange={(e) => {
+            setChantText(e.target.value);
+            setChantErr(null);
+          }}
+        />
+        <div className="chant-controls">
+          <input
+            data-testid="chant-title"
+            placeholder="曲名（默认：口念锣鼓段）"
+            value={chantTitle}
+            onChange={(e) => setChantTitle(e.target.value)}
+          />
+          <select data-testid="chant-bpb" value={chantBpb} onChange={(e) => setChantBpb(Number(e.target.value))}>
+            <option value={2}>2/4</option>
+            <option value={3}>3/4</option>
+            <option value={4}>4/4</option>
+          </select>
+          <button
+            className="btn primary"
+            data-testid="btn-chant-generate"
+            disabled={!chantText.trim()}
+            onClick={createFromChant}
+          >
+            生成新谱
+          </button>
+        </div>
+        {chantErr && (
+          <p className="chant-error" data-testid="chant-error">
+            <b>{ERROR_KIND_LABEL[chantErr.kind]}</b>：{chantErr.message}——请改好这里再生成。
+          </p>
+        )}
       </div>
 
       {scores.length === 0 ? (

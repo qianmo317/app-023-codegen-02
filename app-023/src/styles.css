@@ -47,6 +47,23 @@ h2 { font-size: 16px; margin: 18px 0 6px; border-left: 3px solid var(--red); pad
 .create-box input[type='text'], .create-box input:not([type]) {
   border: 1px solid var(--border); padding: 6px 10px; border-radius: 4px; min-width: 220px;
 }
+.chant-box {
+  border: 1px solid var(--border); border-radius: 6px; background: var(--panel);
+  padding: 10px 14px 12px; margin: 6px 0 14px;
+}
+.chant-box h2 { margin-top: 4px; }
+.chant-box textarea {
+  width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 8px 10px;
+  font: inherit; font-size: 16px; line-height: 1.7; resize: vertical; background: #fff;
+}
+.chant-controls { display: flex; gap: 10px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+.chant-controls input {
+  border: 1px solid var(--border); padding: 6px 10px; border-radius: 4px; min-width: 220px; background: #fff;
+}
+.chant-error {
+  margin: 10px 0 0; padding: 8px 10px; border: 1px solid var(--red); border-radius: 4px;
+  background: #fdf0ee; color: var(--red); font-size: 14px;
+}
 .list { width: 100%; border-collapse: collapse; margin: 10px 0; }
 .list th, .list td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); font-size: 14px; }
 .list th { color: var(--dim); font-weight: 500; }
