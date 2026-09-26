@@ -41,7 +41,7 @@ cd app-023
 npm install
 npm run dev        # 开发服务器（默认 5173）
 npm run build      # tsc -b && vite build（含类型检查）
-npm test           # 单元测试（58 个用例）
+npm test           # 单元测试（70 个用例）
 npm run e2e        # Playwright E2E（13 个用例，自动起 4174 preview）
 ```
 
@@ -80,6 +80,7 @@ npm run e2e        # Playwright E2E（13 个用例，自动起 4174 preview）
 | [lib/audio.ts](src/lib/audio.ts) | 合成音（drum/metal/wood）、lookahead 调度器、事件展开 | `computeEvents` `computeLoopEvents` `scheduleEvents` `playRange` |
 | [lib/storage.ts](src/lib/storage.ts) | IndexedDB CRUD（scores/settings） | `listScores` `getScore` `saveScore` `deleteScore` |
 | [lib/factory.ts](src/lib/factory.ts) | JSON 默认数据 → 对象、曲牌 → Score 转换（跨小节自动切分补休止） | `scoreFromPattern` `newEmptyScore` `emptyBar` |
+| [lib/oral.ts](src/lib/oral.ts) | 口念锣鼓经文本解析：时值简写、齐奏括号、休止、显式/自动小节线 | `scoreFromOralText` `OralParseError` |
 | [hooks/useAudio.ts](src/hooks/useAudio.ts) | 播放状态集中管理：ctx/调度/循环/高亮/独奏静音 | `useAudio(score)` |
 | [components/ScoreGrid.tsx](src/components/ScoreGrid.tsx) | SVG 谱面：时间×乐器网格、时值线、tie 延伸、齐奏同列、选中光标、高亮列 | `<ScoreGrid>` |
 | [components/Transport.tsx](src/components/Transport.tsx) | 试听控制台：播放/BPM/循环/高亮开关 | `<Transport>` |
@@ -158,6 +159,7 @@ npm run e2e        # Playwright E2E（13 个用例，自动起 4174 preview）
 
 ```
 tests/grid.test.ts      26 用例：时值换算、切分偏移、拆格、宽度一致、曲牌结构
+tests/oral.test.ts      12 用例：口念文本解析、自动折小节、括号/格数/未知字定位
 tests/glyphs.test.ts    18 用例：反查、技法区分、键位解析、防串乐器、冲突抛错
 tests/scheduler.test.ts  9 用例：漂移(<1e-9s)、齐奏同刻、循环相位、散板伸缩、lookahead 行为
 tests/storage.test.ts    5 用例：CRUD、排序、覆盖更新、设置往返（fake-indexeddb）

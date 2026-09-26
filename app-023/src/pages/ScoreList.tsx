@@ -3,12 +3,17 @@ import { useEffect, useState } from 'react';
 import type { Score } from '../types';
 import { deleteScore, listScores, saveScore } from '../lib/storage';
 import { newEmptyScore, PATTERNS } from '../lib/factory';
+import { oralErrorText, scoreFromOralText } from '../lib/oral';
 
 export function ScoreList() {
   const [scores, setScores] = useState<Score[]>([]);
   const [title, setTitle] = useState('');
   const [bpb, setBpb] = useState(4);
   const [free, setFree] = useState(false);
+  const [oralTitle, setOralTitle] = useState('');
+  const [oralBpb, setOralBpb] = useState(4);
+  const [oralText, setOralText] = useState('');
+  const [oralError, setOralError] = useState('');
 
   const refresh = () => listScores().then(setScores);
   useEffect(() => {
@@ -21,6 +26,20 @@ export function ScoreList() {
     await saveScore(s);
     setTitle('');
     window.location.hash = `#/score/${s.id}`;
+  };
+
+  const createFromOral = async () => {
+    try {
+      const s = scoreFromOralText(oralText, {
+        title: oralTitle,
+        beatsPerBar: oralBpb,
+      });
+      await saveScore(s);
+      setOralError('');
+      window.location.hash = `#/score/${s.id}`;
+    } catch (err) {
+      setOralError(oralErrorText(err));
+    }
   };
 
   return (
@@ -48,6 +67,55 @@ export function ScoreList() {
           从曲牌库创建
         </button>
       </div>
+
+      <section className="oral-box" data-testid="oral-parser">
+        <h2>口念成谱</h2>
+        <div className="oral-controls">
+          <input
+            data-testid="oral-title"
+            placeholder="新谱曲名（可空）"
+            value={oralTitle}
+            onChange={(e) => setOralTitle(e.target.value)}
+          />
+          <select data-testid="oral-bpb" value={oralBpb} onChange={(e) => setOralBpb(Number(e.target.value))}>
+            <option value={2}>2/4</option>
+            <option value={3}>3/4</option>
+            <option value={4}>4/4</option>
+          </select>
+          <button className="btn primary" data-testid="btn-parse-oral" onClick={createFromOral}>
+            生成新谱
+          </button>
+          <button
+            className="btn"
+            type="button"
+            onClick={() => {
+              setOralText('[哐才七] 咚_ 咚_ 才 七 ｜ 哐 才 七 台');
+              setOralError('');
+            }}
+          >
+            填入示例
+          </button>
+        </div>
+        <textarea
+          className="oral-input"
+          data-testid="oral-text"
+          rows={5}
+          placeholder={'把口念字串写在这里，例如：\n[哐才七] 咚_ 咚_ 才 七 ｜ 哐 才 七 台\n无记号=一拍；下划线=半拍；两点=一拍半；[]=同时响；0=休止；| = 小节线'}
+          value={oralText}
+          onChange={(e) => {
+            setOralText(e.target.value);
+            if (oralError) setOralError('');
+          }}
+        />
+        <p className="dim">
+          解析成功后会另存为一段新谱；出错会停在当前文本，不会改动已有曲目。
+        </p>
+        {oralError && (
+          <p className="oral-error" data-testid="oral-error" role="alert">
+            {oralError}
+          </p>
+        )}
+      </section>
 
       {scores.length === 0 ? (
         <p className="dim">还没有曲目。可新建空白谱，或从曲牌库载入「急急风」「四击头」等骨架再改。</p>

@@ -53,6 +53,37 @@ h2 { font-size: 16px; margin: 18px 0 6px; border-left: 3px solid var(--red); pad
 .score-link { color: var(--ink); text-decoration: none; font-weight: 600; }
 .score-link:hover { color: var(--red); }
 
+.oral-box {
+  margin: 18px 0 24px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fffdf8;
+}
+.oral-controls { display: flex; gap: 10px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+.oral-controls input {
+  border: 1px solid var(--border); padding: 6px 10px; border-radius: 4px; min-width: 220px;
+}
+.oral-input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 16px;
+  line-height: 1.7;
+  resize: vertical;
+  background: #fff;
+}
+.oral-input:focus { outline: 2px solid rgba(192, 57, 43, 0.18); border-color: var(--red); }
+.oral-error {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--red);
+  background: #fff0ed;
+  color: #9d251b;
+  font-weight: 600;
+}
+
 /* ---- 编辑器 ---- */
 .editor-page { display: flex; flex-direction: column; height: 100vh; outline: none; }
 .editor-header {
